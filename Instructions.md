@@ -10,3 +10,11 @@
 2. Run the **Setup Cell** to clone this repository.
 3. Import the `actual_code.py` or run the main function.
 4. Paste your API Key into the input field when prompted.
+
+5. # Pro Instructions
+
+1. **Setup:** Run the first cell to clone the repo and install `pandas` and `matplotlib`.
+2. **Key Input:** Enter your API key when prompted.
+3. **Analyze:** Use the "Fetch" button to log data. 
+4. **Visualize:** Click "Show Analytics" to see a chart of the latest fetch.
+5. **Export:** Use the `download_data()` function to save the CSV to your MacBook.
