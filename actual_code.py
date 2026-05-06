@@ -8,7 +8,8 @@ from IPython.display import display, HTML, clear_output
 class SkylinePro:
     def __init__(self, api_key):
         self.api_key = api_key
-        self.base_url = "http://api.data.openweathermap.org/data/2.5/weather"
+        # Updated to the correct endpoint
+        self.base_url = "https://api.openweathermap.org/data/2.5/weather"
         self.log_file = "weather_history.csv"
         self.cities = sorted(["Mumbai", "Bengaluru", "New York", "London", "Tokyo", "Singapore", "Sydney", "Dubai"])
         
