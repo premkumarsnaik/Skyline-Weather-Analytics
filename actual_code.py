@@ -1,55 +1,76 @@
 import requests
+import pandas as pd
+import matplotlib.pyplot as plt
+from datetime import datetime
 from ipywidgets import interact, widgets
-from IPython.display import display, HTML
+from IPython.display import display, HTML, clear_output
 
-class WeatherApp:
+class SkylinePro:
     def __init__(self, api_key):
         self.api_key = api_key
         self.base_url = "http://api.data.openweathermap.org/data/2.5/weather"
-        self.cities = [
-            "Mumbai", "Bengaluru", "New York", "London", "Tokyo", 
-            "Paris", "Berlin", "Dubai", "Singapore", "Sydney", 
-            "Toronto", "Moscow", "Shanghai", "Sao Paulo", "Cairo",
-            "Istanbul", "Seoul", "Mexico City", "Jakarta", "Lagos",
-            "Bangkok", "Chicago", "Madrid", "Rome", "Amsterdam"
-        ]
-
-    def fetch_weather(self, city):
-        params = {
-            "q": city,
-            "appid": self.api_key,
-            "units": "metric"
-        }
+        self.log_file = "weather_history.csv"
+        self.cities = sorted(["Mumbai", "Bengaluru", "New York", "London", "Tokyo", "Singapore", "Sydney", "Dubai"])
         
+        # Initialize CSV if it doesn't exist
         try:
-            response = requests.get(self.base_url, params=params)
+            pd.read_csv(self.log_file)
+        except FileNotFoundError:
+            df = pd.DataFrame(columns=["Timestamp", "City", "Temp", "Feels_Like", "Humidity", "Wind_Speed"])
+            df.to_csv(self.log_file, index=False)
+
+    def fetch_and_log(self, city):
+        params = {"q": city, "appid": self.api_key, "units": "metric"}
+        response = requests.get(self.base_url, params=params)
+        
+        if response.status_code == 200:
             data = response.json()
+            weather_data = {
+                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "City": city,
+                "Temp": data['main']['temp'],
+                "Feels_Like": data['main']['feels_like'],
+                "Humidity": data['main']['humidity'],
+                "Wind_Speed": data['wind']['speed']
+            }
             
-            if response.status_code == 200:
-                temp = data['main']['temp']
-                humidity = data['main']['humidity']
-                desc = data['weather'][0]['description'].capitalize()
-                
-                # Professional HTML output for Colab
-                output = f"""
-                <div style="border: 2px solid #1e88e5; padding: 15px; border-radius: 10px; background-color: #f5f5f5; color: #333;">
-                    <h2 style="margin-top:0;">📍 {city}</h2>
-                    <p><b>🌡️ Temperature:</b> {temp}°C</p>
-                    <p><b>💧 Humidity:</b> {humidity}%</p>
-                    <p><b>☁️ Condition:</b> {desc}</p>
-                </div>
-                """
-                display(HTML(output))
-            else:
-                print(f"❌ Error: {data.get('message', 'Unknown Error')}")
-        except Exception as e:
-            print(f"⚠️ Connection Error: {e}")
+            # Save to CSV
+            df = pd.DataFrame([weather_data])
+            df.to_csv(self.log_file, mode='a', header=False, index=False)
+            
+            # Display UI
+            self.display_ui(weather_data)
+        else:
+            print("Error: Check API Key or City Name.")
+
+    def display_ui(self, d):
+        clear_output(wait=True)
+        html = f"""
+        <div style="background-color: #121212; color: #00FF41; padding: 20px; border-radius: 10px; font-family: monospace;">
+            <h3>> SYSTEM_LOG: {d['City']} @ {d['Timestamp']}</h3>
+            <p>TEMPERATURE: {d['Temp']}°C (Feels like {d['Feels_Like']}°C)</p>
+            <p>HUMIDITY: {d['Humidity']}%</p>
+            <p>WIND_SPEED: {d['Wind_Speed']} m/s</p>
+            <p style="color: #888;">Data saved to {self.log_file}</p>
+        </div>
+        """
+        display(HTML(html))
+        self.show_plot(d)
+
+    def show_plot(self, d):
+        metrics = ['Temp', 'Feels_Like', 'Humidity']
+        values = [d['Temp'], d['Feels_Like'], d['Humidity']]
+        
+        plt.figure(figsize=(6, 3))
+        plt.bar(metrics, values, color=['#1e88e5', '#ffb300', '#43a047'])
+        plt.title(f"Weather Metrics for {d['City']}")
+        plt.ylabel("Value")
+        plt.show()
 
     def run(self):
-        print("🌍 Skyline Weather Dashboard")
-        interact(self.fetch_weather, city=widgets.Dropdown(options=sorted(self.cities), description="Select City:"))
+        interact(self.fetch_and_log, city=widgets.Dropdown(options=self.cities, description="Target City:"))
 
-# To run this in Colab, you would do:
-# from actual_code import WeatherApp
-# app = WeatherApp("YOUR_API_KEY")
-# app.run()
+# Function to download data in Colab
+def download_data():
+    from google.colab import files
+    files.download('weather_history.csv')
